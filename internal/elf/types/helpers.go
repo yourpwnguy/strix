@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/yourpwnguy/strix/internal/ui"
 )
@@ -442,6 +443,31 @@ func GetEMachine(e_machine uint16) string {
 	}
 }
 
+// Getter for getting interpreter from ELF File
+func GetInterpreter(ehdr *Elf64_Ehdr, phdr []Elf64_Phdr, data []byte) string {
+	for i := uint16(0); i < ehdr.E_phnum; i++ {
+		if phdr[i].P_type != PT_INTERP {
+			continue
+		}
+		start := phdr[i].P_offset
+		end := start + phdr[i].P_filesz
+
+		if end > uint64(len(data)) || start >= end {
+			return "<Invalid interpreter offset>"
+		}
+
+		// Strip null terminator
+		interp := data[start:end]
+		if interp[len(interp)-1] == 0 {
+			interp = interp[:len(interp)-1]
+		}
+
+		return unsafe.String(&interp[0], len(interp))
+	}
+
+	return "<Interpreter not available>"
+}
+
 // GetPType returns a human-readable string for the program header type (p_type field).
 // It handles standard, OS-specific, and processor-specific segment types.
 func GetPType(p_type uint32) string {
@@ -528,27 +554,6 @@ func GetPFlags(p_flags uint32) string {
 	return sb.String()
 }
 
-//
-// // Getter for getting interpreter from ELF File
-// func getInterpreter(data []byte, e_phnum uint16, phdr []*Elf64_Phdr) string {
-// 	for i := range e_phnum {
-// 		if phdr[i].p_type == PT_INTERP && phdr[i].p_filesz > 0 {
-//
-// 			// Bounds check
-// 			// TODO: remove this check it will happen in validationfunc()
-// 			end := phdr[i].p_offset + phdr[i].p_filesz
-// 			if end > uint64(len(data)) {
-// 				return "Invalid offset"
-// 			}
-//
-// 			// Get the string and trim null terminator
-// 			interpreterBytes := data[phdr[i].p_offset:end]
-// 			return strings.TrimRight(string(interpreterBytes), "\x00")
-// 		}
-// 	}
-// 	return "Not Available"
-// }
-//
 // // Getter for sh_type (section type)
 // func GetSectionTypeName(shType uint32) string {
 // 	switch shType {

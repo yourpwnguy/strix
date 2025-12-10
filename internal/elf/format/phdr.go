@@ -9,7 +9,7 @@ import (
 )
 
 // PrintProgramHeaders displays the program header table in a formatted layout.
-func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr) {
+func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, data []byte) {
 	var sb strings.Builder
 	sb.Grow(2048 + int(ehdr.E_phnum)*200)
 
@@ -21,6 +21,11 @@ func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr) {
 	// ELF Entry point virtual address
 	sb.WriteString(ui.Cyan.Sprintf("%s", "Entry: "))
 	sb.WriteString(ui.Green.Sprintf("%#016x\n", ehdr.E_entry))
+
+	// ELF Interpreter
+	sb.WriteString(ui.Cyan.Sprintf("%s", "Interpreter: "))
+	sb.WriteString(ui.Green.Sprint(types.GetInterpreter(ehdr, phdr, data)))
+	sb.WriteString("\n\n")
 
 	// ELF Program headers count and offset
 	sb.WriteString(ui.Cyan.Sprintf("%s", "Program Headers: "))

@@ -52,6 +52,6 @@ var phdrCmd = &cobra.Command{
 		}
 
 		// Pretty Print the Program Headers
-		format.PrintProgramHeaders(ehdr, phdr)
+		format.PrintProgramHeaders(ehdr, phdr, elfParser.Data())
 	},
 }
