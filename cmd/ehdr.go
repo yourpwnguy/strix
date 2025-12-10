@@ -47,7 +47,14 @@ var infoCmd = &cobra.Command{
 			return
 		}
 
+		phdr, err := elfParser.ProgramHeaders()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n",
+				err,
+			)
+		}
+
 		// Pretty Print the ELF Header
-		format.PrintELFHeader(hdr)
+		format.PrintELFHeader(hdr, phdr)
 	},
 }

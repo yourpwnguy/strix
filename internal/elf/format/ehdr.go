@@ -9,8 +9,8 @@ import (
 )
 
 // Print ELF Header in colored and formatted way
-func PrintELFHeader(header *types.Elf64_Ehdr) {
-	e_ident := &header.E_ident
+func PrintELFHeader(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr) {
+	e_ident := &ehdr.E_ident
 
 	var sb strings.Builder
 	sb.Grow(2048)
@@ -67,61 +67,62 @@ func PrintELFHeader(header *types.Elf64_Ehdr) {
 
 	// ELF Object file type
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Type:"))
-	sb.WriteString(ui.Yellow.Sprint(types.GetEType(header.E_type)))
+	sb.WriteString(ui.Yellow.Sprint(types.GetEType(ehdr.E_type, types.HasInterpreter(ehdr, phdr))))
 	sb.WriteByte('\n')
 
 	// ELF Machine - Architecture Information
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Machine:"))
-	if strings.Contains(types.GetEMachine(header.E_machine), "Advanced Micro Devices") {
-		sb.WriteString(ui.Red.Sprint(types.GetEMachine(header.E_machine)))
+	eMachine := types.GetEMachine(ehdr.E_machine)
+	if strings.Contains((eMachine), "Advanced Micro Devices") {
+		sb.WriteString(ui.Red.Sprint(eMachine))
 	} else {
-		sb.WriteString(ui.Green.Sprint(types.GetEMachine(header.E_machine)))
+		sb.WriteString(ui.Green.Sprint(eMachine))
 	}
 	sb.WriteByte('\n')
 
 	// ELF Object file version
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Version:"))
-	sb.WriteString(ui.Green.Sprintf("%#x\n", header.E_version))
+	sb.WriteString(ui.Green.Sprintf("%#x\n", ehdr.E_version))
 
 	// ELF Entry point virtual address
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Entry Point Address:"))
-	sb.WriteString(ui.Yellow.Sprintf("%#016x\n", header.E_entry))
+	sb.WriteString(ui.Yellow.Sprintf("%#016x\n", ehdr.E_entry))
 
 	// ELF Program header table file offset
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Start of program headers:"))
-	sb.WriteString(ui.Green.Sprintf("%d (bytes into file)\n", header.E_phoff))
+	sb.WriteString(ui.Green.Sprintf("%d (bytes into file)\n", ehdr.E_phoff))
 
 	// ELF Section header table file offset
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Start of section headers:"))
-	sb.WriteString(ui.Green.Sprintf("%d (bytes into file)\n", header.E_shoff))
+	sb.WriteString(ui.Green.Sprintf("%d (bytes into file)\n", ehdr.E_shoff))
 
 	// ELF Processor-specific flags
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Flags:"))
-	sb.WriteString(ui.Green.Sprintf("%#x\n", header.E_flags))
+	sb.WriteString(ui.Green.Sprintf("%#x\n", ehdr.E_flags))
 
 	// ELF Header size in bytes
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Size of this header:"))
-	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", header.E_ehsize))
+	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", ehdr.E_ehsize))
 
 	// ELF Program header table entry size
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Size of program headers:"))
-	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", header.E_phentsize))
+	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", ehdr.E_phentsize))
 
 	// ELF Program header table entry count
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Number of program headers:"))
-	sb.WriteString(ui.Green.Sprintf("%d\n", header.E_phnum))
+	sb.WriteString(ui.Green.Sprintf("%d\n", ehdr.E_phnum))
 
 	// ELF Section header table entry size
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Size of section headers:"))
-	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", header.E_shentsize))
+	sb.WriteString(ui.Blue.Sprintf("%d (bytes)\n", ehdr.E_shentsize))
 
 	// ELF Section header table entry count
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Number of section headers:"))
-	sb.WriteString(ui.Green.Sprintf("%d\n", header.E_shnum))
+	sb.WriteString(ui.Green.Sprintf("%d\n", ehdr.E_shnum))
 
 	// ELF Section header string table index
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Section header string table index:"))
-	sb.WriteString(ui.Green.Sprintf("%d\n", header.E_shstrndx))
+	sb.WriteString(ui.Green.Sprintf("%d\n", ehdr.E_shstrndx))
 
 	// ELF Single output
 	fmt.Print(sb.String())

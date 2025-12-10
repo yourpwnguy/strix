@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yourpwnguy/strix/internal/elf/format"
 	"github.com/yourpwnguy/strix/internal/elf/parser"
 	"github.com/yourpwnguy/strix/internal/reader"
 	"github.com/yourpwnguy/strix/internal/ui"
@@ -38,7 +37,7 @@ var shdrCmd = &cobra.Command{
 
 		fmt.Printf("%+v", elfParser)
 		// Getting initiliased ELF Header
-		hdr, err := elfParser.ELFHeader()
+		_, err := elfParser.ELFHeader()
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			return
@@ -52,6 +51,6 @@ var shdrCmd = &cobra.Command{
 
 		fmt.Printf("%+v", elfParser)
 		// Pretty Print the ELF Header
-		format.PrintELFHeader(hdr)
+		// format.PrintELFHeader(hdr, phd)
 	},
 }

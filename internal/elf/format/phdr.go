@@ -11,11 +11,13 @@ import (
 // PrintProgramHeaders displays the program header table in a formatted layout.
 func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, data []byte) {
 	var sb strings.Builder
+
+	// Basic estimation
 	sb.Grow(2048 + int(ehdr.E_phnum)*200)
 
 	// ELF Object Type
 	sb.WriteString(ui.Cyan.Sprintf("\n%s", "ELF Type: "))
-	sb.WriteString(ui.Green.Sprint(types.GetEType(ehdr.E_type)))
+	sb.WriteString(ui.Green.Sprint(types.GetEType(ehdr.E_type, types.HasInterpreter(ehdr, phdr))))
 	sb.WriteByte('\n')
 
 	// ELF Entry point virtual address

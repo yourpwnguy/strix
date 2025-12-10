@@ -53,9 +53,9 @@ func GetEiOSABI(ei_osabi uint8) string {
 	}
 }
 
-// GetEType returns a human-readable string representation of the e_type field,
-// identifying the object file type (executable, relocatable, shared object, etc.).
-func GetEType(e_type uint16) string {
+// GetEType returns the ELF object file type as a human-readable string.
+// For ET_DYN, it checks for PT_INTERP to distinguish PIE executables from shared objects.
+func GetEType(e_type uint16, hasInterp bool) string {
 	switch e_type {
 	case ET_NONE:
 		return "NONE (No file type)"
@@ -64,12 +64,31 @@ func GetEType(e_type uint16) string {
 	case ET_EXEC:
 		return "EXEC (Executable file)"
 	case ET_DYN:
-		return "DYN (Postition-Independent Executable file)"
+		if hasInterp {
+			return "DYN (Position-Independent Executable file)"
+		}
+		return "DYN (Shared object file)"
 	case ET_CORE:
 		return "CORE (Core file)"
 	default:
-		return "<Unknown>"
+		if e_type >= ET_LOOS && e_type <= ET_HIOS {
+			return fmt.Sprintf("OS-specific (0x%04x)", e_type)
+		}
+		if e_type >= ET_LOPROC && e_type <= ET_HIPROC {
+			return fmt.Sprintf("Processor-specific (0x%04x)", e_type)
+		}
+		return fmt.Sprintf("<unknown: 0x%04x>", e_type)
 	}
+}
+
+// HasInterpreter checks if any program header has PT_INTERP type.
+func HasInterpreter(ehdr *Elf64_Ehdr, phdr []Elf64_Phdr) bool {
+	for i := uint16(0); i < ehdr.E_phnum; i++ {
+		if phdr[i].P_type == PT_INTERP {
+			return true
+		}
+	}
+	return false
 }
 
 // GetEMachine returns a human-readable string representation of the e_machine field,
