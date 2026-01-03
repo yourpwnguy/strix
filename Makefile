@@ -1,21 +1,42 @@
-.PHONY: build clean test-err test-suc
+BINARY := strix
+BUILD_DIR := bin
+MODULE := github.com/yourpwnguy/strix
 
-VERSION ?=1.0
-LDFLAGS := -s -w \
-		-X 'strix/cmd.Version=$(VERSION)'
+VERSION := $(shell git describe --tags --dirty --always 2>/dev/null || echo dev)
+
+.PHONY: build run clean test install uninstall fmt vet check
 
 build:
-	GOOS=linux GOARCH=amd64 go build ./
+	@mkdir -p $(BUILD_DIR)
+	@go build \
+		-ldflags "-s -w -X $(MODULE)/cmd.Version=$(VERSION)" \
+		-o $(BUILD_DIR)/$(BINARY) \
+		.
+	@echo "✓ Built $(BUILD_DIR)/$(BINARY) ($(VERSION))"
 
-build-optimized:
-	GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" ./
+run: build
+	@./$(BUILD_DIR)/$(BINARY)
 
-test-err:
-	-./strix info Makefile
+install: build
+	@cp $(BUILD_DIR)/$(BINARY) $(GOPATH)/bin/ 2>/dev/null || cp $(BUILD_DIR)/$(BINARY) $(HOME)/go/bin/
+	@echo "✓ Installed"
 
-test-suc:
-	-./strix info ./ls
+uninstall:
+	@rm -f $(GOPATH)/bin/$(BINARY) $(HOME)/go/bin/$(BINARY)
+	@echo "✓ Uninstalled"
 
-deps:
-	go mod download
-	go mod tidy
+clean:
+	@rm -rf $(BUILD_DIR)
+	@echo "✓ Cleaned"
+
+test:
+	@go test -v ./...
+
+fmt:
+	@go fmt ./...
+
+vet:
+	@go vet ./...
+
+check: fmt vet test
+	@echo "✓ All good"
