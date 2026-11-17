@@ -49,7 +49,7 @@ func PrintELFHeader(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr) {
 
 	// ELF Data
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "Data:"))
-	sb.WriteString(ui.Green.Sprint(types.GetEiData(e_ident.Ei_class)))
+	sb.WriteString(ui.Green.Sprint(types.GetEiData(e_ident.Ei_data)))
 	sb.WriteByte('\n')
 
 	// ELF Version
