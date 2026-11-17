@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yourpwnguy/strix/internal/elf/parser"
-	"github.com/yourpwnguy/strix/internal/reader"
+	"github.com/yourpwnguy/strix/internal/elf"
+	"github.com/yourpwnguy/strix/internal/elf/format"
 	"github.com/yourpwnguy/strix/internal/ui"
 )
 
@@ -24,9 +24,9 @@ var shdrCmd = &cobra.Command{
 			return
 		}
 
-		elfParser := parser.NewParser(&reader.MmapReader{})
-
-		if err := elfParser.Load(args[0]); err != nil {
+		// Initialises a new parser
+		elfParser, err := elf.Open(args[0])
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s %s\n",
 				ui.ErrPrefix,
 				err,
@@ -35,22 +35,21 @@ var shdrCmd = &cobra.Command{
 		}
 		defer elfParser.Close()
 
-		fmt.Printf("%+v", elfParser)
 		// Getting initiliased ELF Header
-		_, err := elfParser.ELFHeader()
+		ehdr, err := elfParser.ELFHeader()
 		if err != nil {
 			fmt.Fprint(os.Stderr, err)
 			return
 		}
 
-		// phdr, err := elfParser.ProgramHeaders()
-		// if err != nil {
-		// 	fmt.Fprint(os.Stderr, err)
-		// 	return
-		// }
+		// Getting initiliased ELF Header
+		shdr, err := elfParser.SectionHeaders()
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			return
+		}
 
-		fmt.Printf("%+v", elfParser)
 		// Pretty Print the ELF Header
-		// format.PrintELFHeader(hdr, phd)
+		format.PrintSectionHeaders(ehdr, shdr, elfParser.Data())
 	},
 }

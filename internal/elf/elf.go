@@ -1,12 +1,15 @@
-package parser
+package elf
 
 import (
+	"fmt"
+
+	"github.com/yourpwnguy/strix/internal/elf/parser"
 	"github.com/yourpwnguy/strix/internal/elf/types"
 	"github.com/yourpwnguy/strix/internal/reader"
 )
 
 // Parser handles ELF64 file parsing with cached results for repeated access.
-type Parser struct {
+type ELFParser struct {
 	reader reader.BinaryReader
 
 	// Raw data (mmap'd or in-memory)
@@ -18,37 +21,51 @@ type Parser struct {
 	shdr []types.Elf64_Shdr
 }
 
-// NewParser creates a new Parser instance with the specified binary reader.
-func NewParser(reader reader.BinaryReader) *Parser {
-	return &Parser{
-		reader: reader,
+// New creates a parser from a BinaryReader.
+func NewELFParser(r reader.BinaryReader) (*ELFParser, error) {
+	if r == nil {
+		return nil, fmt.Errorf("reader is nil")
 	}
+
+	data := r.Bytes()
+
+	return &ELFParser{
+		reader: r,
+		data:   data,
+	}, nil
 }
 
-// Load reads the ELF binary file into memory using the configured reader.
-func (p *Parser) Load(path string) error {
-	data, err := p.reader.Read(path)
+// Open opens a file and creates a parser.
+func Open(path string) (*ELFParser, error) {
+	r, err := reader.Open(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	p.data = data
-	return nil
+
+	p, err := NewELFParser(r)
+	if err != nil {
+		r.Close()
+		return nil, err
+	}
+
+	return p, nil
 }
 
 // Close releases all resources held by the parser, including the underlying reader.
-func (p *Parser) Close() {
+func (p *ELFParser) Close() error {
 	if p.reader != nil {
-		p.reader.Close()
+		return p.reader.Close()
 	}
+	return nil
 }
 
 // Header returns the ELF64 header. Results are cached after the first call.
-func (p *Parser) ELFHeader() (*types.Elf64_Ehdr, error) {
+func (p *ELFParser) ELFHeader() (*types.Elf64_Ehdr, error) {
 	if p.ehdr != nil {
 		return p.ehdr, nil
 	}
 
-	hdr, err := parseELFHeader(p.data)
+	hdr, err := parser.ParseELFHeader(p.data)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +75,7 @@ func (p *Parser) ELFHeader() (*types.Elf64_Ehdr, error) {
 }
 
 // ProgramHeaders returns all program headers. Results are cached after the first call.
-func (p *Parser) ProgramHeaders() ([]types.Elf64_Phdr, error) {
+func (p *ELFParser) ProgramHeaders() ([]types.Elf64_Phdr, error) {
 	if p.phdr != nil {
 		return p.phdr, nil
 	}
@@ -68,7 +85,7 @@ func (p *Parser) ProgramHeaders() ([]types.Elf64_Phdr, error) {
 		return nil, err
 	}
 
-	phdr, err := parseProgramHeaders(p.data, ehdr)
+	phdr, err := parser.ParseProgramHeaders(p.data, ehdr)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +95,7 @@ func (p *Parser) ProgramHeaders() ([]types.Elf64_Phdr, error) {
 }
 
 // SectionHeaders returns all section headers. Results are cached after the first call.
-func (p *Parser) SectionHeaders() ([]types.Elf64_Shdr, error) {
+func (p *ELFParser) SectionHeaders() ([]types.Elf64_Shdr, error) {
 	if p.shdr != nil {
 		return p.shdr, nil
 	}
@@ -88,7 +105,7 @@ func (p *Parser) SectionHeaders() ([]types.Elf64_Shdr, error) {
 		return nil, err
 	}
 
-	shdr, err := parseSectionHeaders(p.data, ehdr)
+	shdr, err := parser.ParseSectionHeaders(p.data, ehdr)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +114,7 @@ func (p *Parser) SectionHeaders() ([]types.Elf64_Shdr, error) {
 	return shdr, nil
 }
 
-// Data returns the raw file bytes loaded by the parser.
-func (p *Parser) Data() []byte {
+// Data returns the raw file bytes loaded by the ELFParser.
+func (p *ELFParser) Data() []byte {
 	return p.data
 }

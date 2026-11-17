@@ -6,6 +6,6 @@ import (
 )
 
 // parseSectionHeaders parses section headers with zero-copy.
-func parseSectionHeaders(data []byte, ehdr *types.Elf64_Ehdr) ([]types.Elf64_Shdr, error) {
+func ParseSectionHeaders(data []byte, ehdr *types.Elf64_Ehdr) ([]types.Elf64_Shdr, error) {
 	return unsafe.CastSectionHeaders(data, ehdr.E_shnum, ehdr.E_shoff), nil
 }

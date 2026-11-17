@@ -9,7 +9,7 @@ import (
 )
 
 // PrintProgramHeaders displays the program header table in a formatted layout.
-func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, data []byte) {
+func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, shdr []types.Elf64_Shdr, data []byte) {
 	var sb strings.Builder
 
 	// Basic estimation
@@ -50,29 +50,69 @@ func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, data [
 		))
 
 	// Table rows
-	for i := uint16(0); i < ehdr.E_phnum; i++ {
+	for i := range phdr {
 		ph := &phdr[i]
-		sb.WriteString(
-			fmt.Sprintf("%-16s%-25s%s  %-20s%-30s%-30s%s\n%69s%30s\n",
-				// Count
-				fmt.Sprintf("[%02s]", ui.Red.Sprintf("%02d", i)),
-				// Type
-				ui.Cyan.Sprint(types.GetPType(ph.P_type)),
-				// Flags
-				types.GetPFlags(ph.P_flags),
-				// Align
-				ui.Yellow.Sprintf("%#04x", ph.P_align),
-				// Offset
-				ui.Green.Sprintf("%#016x", ph.P_offset),
-				// VirtAddr
-				ui.Green.Sprintf("%#016x", ph.P_vaddr),
-				// PhysAddr
-				ui.Green.Sprintf("%#016x", ph.P_paddr),
-				// File Size
-				ui.Green.Sprintf("%#016x", ph.P_filesz),
-				// Memory Size
-				ui.Green.Sprintf("%#016x", ph.P_memsz),
-			))
+		fmt.Fprintf(&sb, "%-16s%-25s%s  %-20s%-30s%-30s%s\n%69s%30s\n",
+
+			fmt.Sprintf("[%02s]", ui.Red.Sprintf("%02d", i)),
+
+			ui.Cyan.Sprint(types.GetPType(ph.P_type)),
+
+			types.GetPFlags(ph.P_flags),
+
+			ui.Yellow.Sprintf("%#04x", ph.P_align),
+
+			ui.Green.Sprintf("%#016x", ph.P_offset),
+
+			ui.Green.Sprintf("%#016x", ph.P_vaddr),
+
+			ui.Green.Sprintf("%#016x", ph.P_paddr),
+
+			ui.Green.Sprintf("%#016x", ph.P_filesz),
+
+			ui.Green.Sprintf("%#016x", ph.P_memsz))
 	}
+
+	printSectionMapping(
+		&sb,
+		ehdr,
+		phdr,
+		shdr,
+		data,
+	)
+
 	fmt.Print(sb.String())
+}
+
+// printSectionMapping prints which sections belong to each program segment.
+// This shows how the linker packed sections into loadable segments.
+func printSectionMapping(sb *strings.Builder, ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, shdr []types.Elf64_Shdr, data []byte) {
+	// iF the string table index doesn't fall in section headers, there's no point of continuing
+	if ehdr.E_shstrndx == 0 || int(ehdr.E_shstrndx) >= len(shdr) {
+		return
+	}
+
+	// Getting the section header containing the string table
+	strtab := shdr[ehdr.E_shstrndx]
+
+	// Getting the strings table (start + start + size)
+	strs := data[strtab.Sh_offset : strtab.Sh_offset+strtab.Sh_size]
+
+	sb.WriteString(ui.Cyan.Sprint("\nSection to Segment Mapping:\n"))
+	sb.WriteString(ui.Magenta.Sprint(" Segment", " Sections...\n"))
+
+	for i, ph := range phdr {
+		sb.WriteString(ui.Yellow.Sprintf("  %02d     ", i))
+
+		for _, sh := range shdr {
+			if sh.Sh_type == types.SHT_NULL {
+				continue
+			}
+
+			if types.SectionInSegment(sh, ph) {
+				sb.WriteString(ui.Green.Sprint(types.Cstring(strs, sh.Sh_name)) + " ")
+			}
+		}
+		sb.WriteByte('\n')
+	}
 }

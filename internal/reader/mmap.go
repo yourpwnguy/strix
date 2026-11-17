@@ -1,37 +1,37 @@
 package reader
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 )
 
-// Represents the Mmap Reader for reading file data
+// MmapReader provides memory-mapped read-only access to files.
 type MmapReader struct {
 	f    *os.File
 	data []byte
+	size int64
 }
 
-// MmapFile memory-maps the file at path for read-only access with sequential read optimization.
-// Returns the mapped byte slice and any error.
-func (m *MmapReader) Read(path string) ([]byte, error) {
-	// Get the file descriptor
+// Open memory-maps a file and returns a ready-to-use reader.
+func Open(path string) (*MmapReader, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open: %w", err)
 	}
 
 	// File metadata
 	fi, err := f.Stat()
 	if err != nil {
 		f.Close()
-		return nil, err
+		return nil, fmt.Errorf("stat: %w", err)
 	}
 
 	// Size validation
 	size := fi.Size()
 	if size == 0 {
 		f.Close()
-		return nil, err
+		return nil, fmt.Errorf("file is empty")
 	}
 
 	// Memory map the file
@@ -44,7 +44,7 @@ func (m *MmapReader) Read(path string) ([]byte, error) {
 	)
 	if err != nil {
 		f.Close()
-		return nil, err
+		return nil, fmt.Errorf("mmap: %w", err)
 	}
 
 	// Lock pages in memory for critical binaries
@@ -54,32 +54,40 @@ func (m *MmapReader) Read(path string) ([]byte, error) {
 	_ = syscall.Madvise(data, syscall.MADV_SEQUENTIAL|syscall.MADV_WILLNEED)
 
 	// Storing for cleanup
-	m.data = data
-	m.f = f
+	return &MmapReader{
+		f:    f,
+		data: data,
+		size: size,
+	}, nil
+}
 
-	return data, nil
+// Returns the raw byte data
+func (m *MmapReader) Bytes() []byte {
+	return m.data
+}
+
+// Returns the total byte count
+func (m *MmapReader) Size() int64 {
+	return m.size
 }
 
 // Close unlocks the pages in memory, unmap the memory, and close the file handle
-func (m *MmapReader) Close() {
+func (m *MmapReader) Close() error {
 	if m.data == nil {
-		return
+		return nil
 	}
 
-	if m.f == nil {
-		return
-	}
-
-	// Unlock memory
 	_ = syscall.Munlock(m.data)
-
-	// Unmap
 	_ = syscall.Munmap(m.data)
-
-	// Close file
-	_ = m.f.Close()
-
-	// Clear state
 	m.data = nil
-	m.f = nil
+
+	if m.f != nil {
+		m.f.Close()
+		m.f = nil
+	}
+
+	return nil
 }
+
+// Compile-Time Interface Check
+var _ BinaryReader = (*MmapReader)(nil)

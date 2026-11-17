@@ -1,7 +1,13 @@
 package reader
 
-// BinaryReader abstracts binary data sources for testing and flexibility.
+// BinaryReader provides access to raw binary data.
 type BinaryReader interface {
-	Read(path string) (data []byte, err error)
-	Close()
+	// Bytes returns the complete raw data
+	Bytes() []byte
+
+	// Size returns total byte count
+	Size() int64
+
+	// Close releases resources
+	Close() error
 }

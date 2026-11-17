@@ -82,6 +82,7 @@ func GetEType(e_type uint16, hasInterp bool) string {
 }
 
 // HasInterpreter checks if any program header has PT_INTERP type.
+// TODO: make this check fall into GetInterpreter
 func HasInterpreter(ehdr *Elf64_Ehdr, phdr []Elf64_Phdr) bool {
 	for i := uint16(0); i < ehdr.E_phnum; i++ {
 		if phdr[i].P_type == PT_INTERP {
@@ -555,7 +556,7 @@ func GetPFlags(p_flags uint32) string {
 	} else {
 		sb.WriteString("  ")
 	}
-	//
+
 	// W flag
 	if p_flags&PF_W != 0 {
 		sb.WriteString(ui.Yellow.Sprint("W "))
@@ -573,90 +574,124 @@ func GetPFlags(p_flags uint32) string {
 	return sb.String()
 }
 
-// // Getter for sh_type (section type)
-// func GetSectionTypeName(shType uint32) string {
-// 	switch shType {
-// 	case 0:
-// 		return "NULL"
-// 	case 1:
-// 		return "PROGBITS"
-// 	case 2:
-// 		return "SYMTAB"
-// 	case 3:
-// 		return "STRTAB"
-// 	case 4:
-// 		return "RELA"
-// 	case 5:
-// 		return "HASH"
-// 	case 6:
-// 		return "DYNAMIC"
-// 	case 7:
-// 		return "NOTE"
-// 	case 8:
-// 		return "NOBITS"
-// 	case 9:
-// 		return "REL"
-// 	case 10:
-// 		return "SHLIB"
-// 	case 11:
-// 		return "DYNSYM"
-// 	case 14:
-// 		return "INIT_ARRAY"
-// 	case 15:
-// 		return "FINI_ARRAY"
-// 	case 16:
-// 		return "PREINIT_ARRAY"
-// 	case 17:
-// 		return "GROUP"
-// 	case 18:
-// 		return "SYMTAB_SHNDX"
-// 	case 19:
-// 		return "RELR"
-// 	case 0x6ffffff5:
-// 		return "GNU_ATTRIBUTES"
-// 	case 0x6ffffff6:
-// 		return "GNU_HASH"
-// 	case 0x6ffffff7:
-// 		return "GNU_LIBLIST"
-// 	case 0x6ffffff8:
-// 		return "CHECKSUM"
-// 	case 0x6ffffffa:
-// 		return "SUNW_move"
-// 	case 0x6ffffffb:
-// 		return "SUNW_COMDAT"
-// 	case 0x6ffffffc:
-// 		return "SUNW_syminfo"
-// 	case 0x6ffffffd:
-// 		return "GNU_verdef"
-// 	case 0x6ffffffe:
-// 		return "GNU_verneed"
-// 	case 0x6fffffff:
-// 		return "GNU_versym"
-// 	default:
-// 		if shType >= 0x70000000 && shType <= 0x7fffffff {
-// 			return "PROC_SPECIFIC"
-// 		}
-// 		if shType >= 0x80000000 && shType <= 0x8fffffff {
-// 			return "USER_SPECIFIC"
-// 		}
-// 		if shType >= 0x60000000 && shType < 0x70000000 {
-// 			return "OS_SPECIFIC"
-// 		}
-// 		return "UNKNOWN"
-// 	}
-// }
-//
-// // Cache the string table data once
-// func GetStringTable(data []byte, hdr *Elf64_Ehdr, shdr []*ELF64_Shdr) []byte {
-// 	shstrtab := shdr[hdr.e_shstrndx]
-// 	return data[shstrtab.sh_offset : shstrtab.sh_offset+shstrtab.sh_size]
-// }
-//
-// // Then use it multiple times
-// func GetSectionNameFromStringTable(strtab []byte, section *ELF64_Shdr) string {
-// 	return extractString(strtab, section.sh_name)
-// }
-//
+// sectionInSegment reports whether a section belongs inside a segment.
+// It handles special cases: TLS sections, NOBITS (.bss), and non-loaded sections.
+func SectionInSegment(sh Elf64_Shdr, ph Elf64_Phdr) bool {
+	sectionTLS := sh.Sh_flags&SHF_TLS != 0
+	segmentTLS := ph.P_type == PT_TLS
+
+	if sectionTLS != segmentTLS {
+		return false
+	}
+
+	// Non-allocatable sections only match non-LOAD segments
+	if sh.Sh_flags&SHF_ALLOC == 0 && ph.P_type == PT_LOAD {
+		return false
+	}
+
+	// NOBITS or TLS: use virtual address range
+	if sh.Sh_type == SHT_NOBITS || sectionTLS {
+		return sh.Sh_addr >= ph.P_vaddr && sh.Sh_addr+sh.Sh_size <= ph.P_vaddr+ph.P_memsz
+	}
+
+	// Normal: use file offset range
+	return sh.Sh_offset >= ph.P_offset && sh.Sh_offset+sh.Sh_size <= ph.P_offset+ph.P_filesz
+}
+
+// Cstring extracts a null-terminated string from a byte table at the given offset.
+func Cstring(table []byte, offset uint32) string {
+	for i := int(offset); i < len(table); i++ {
+		if table[i] == 0 {
+			return string(table[offset:i])
+		}
+	}
+	return ""
+}
+
+// Getter for sh_type (section type)
+func GetSType(shType uint32) string {
+	switch shType {
+	case SHT_NULL:
+		return "NULL"
+	case SHT_PROGBITS:
+		return "PROGBITS"
+	case SHT_SYMTAB:
+		return "SYMTAB"
+	case SHT_STRTAB:
+		return "STRTAB"
+	case SHT_RELA:
+		return "RELA"
+	case SHT_HASH:
+		return "HASH"
+	case SHT_DYNAMIC:
+		return "DYNAMIC"
+	case SHT_NOTE:
+		return "NOTE"
+	case SHT_NOBITS:
+		return "NOBITS"
+	case SHT_REL:
+		return "REL"
+	case SHT_SHLIB:
+		return "SHLIB"
+	case SHT_DYNSYM:
+		return "DYNSYM"
+	case SHT_INIT_ARRAY:
+		return "INIT_ARRAY"
+	case SHT_FINI_ARRAY:
+		return "FINI_ARRAY"
+	case SHT_PREINIT_ARRAY:
+		return "PREINIT_ARRAY"
+	case SHT_GROUP:
+		return "GROUP"
+	case SHT_SYMTAB_SHNDX:
+		return "SYMTAB_SHNDX"
+	case SHT_RELR:
+		return "RELR"
+	case SHT_GNU_ATTRIBUTES:
+		return "GNU_ATTRIBUTES"
+	case SHT_GNU_HASH:
+		return "GNU_HASH"
+	case SHT_GNU_LIBLIST:
+		return "GNU_LIBLIST"
+	case SHT_CHECKSUM:
+		return "CHECKSUM"
+	case SHT_SUNW_move:
+		return "SUNW_move"
+	case SHT_SUNW_COMDAT:
+		return "SUNW_COMDAT"
+	case SHT_SUNW_syminfo:
+		return "SUNW_syminfo"
+	case SHT_GNU_verdef:
+		return "GNU_verdef"
+	case SHT_GNU_verneed:
+		return "GNU_verneed"
+	case SHT_GNU_versym:
+		return "GNU_versym"
+	default:
+		if shType >= 0x70000000 && shType <= 0x7fffffff {
+			return "PROC_SPECIFIC"
+		}
+		if shType >= 0x80000000 && shType <= 0x8fffffff {
+			return "USER_SPECIFIC"
+		}
+		if shType >= 0x60000000 && shType < 0x70000000 {
+			return "OS_SPECIFIC"
+		}
+		return "UNKNOWN"
+	}
+}
+
+// Cache the string table data once
+func GetStringTable(data []byte, ehdr *Elf64_Ehdr, shdr []Elf64_Shdr) []byte {
+	shstrtab := shdr[ehdr.E_shstrndx]
+	return data[shstrtab.Sh_offset : shstrtab.Sh_offset+shstrtab.Sh_size]
+}
+
+// Then use it multiple times
+func GetSectionNameFromStringTable(strtab []byte, section *Elf64_Shdr) string {
+	return Cstring(strtab, section.Sh_name)
+}
+
 // // Extracting sh_name from string table
 // func extractString(data []byte, offset uint32) string {
 // 	if offset >= uint32(len(data)) {
@@ -669,6 +704,7 @@ func GetPFlags(p_flags uint32) string {
 // 	}
 // 	return string(data[offset:end])
 // }
+
 //
 // // Extracting sh_flags
 // func GetShFlagsString(shFlags uint32) string {

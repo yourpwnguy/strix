@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yourpwnguy/strix/internal/elf"
 	"github.com/yourpwnguy/strix/internal/elf/format"
-	"github.com/yourpwnguy/strix/internal/elf/parser"
-	"github.com/yourpwnguy/strix/internal/reader"
 	"github.com/yourpwnguy/strix/internal/ui"
 )
 
@@ -27,15 +26,15 @@ var infoCmd = &cobra.Command{
 			return
 		}
 
-		elfParser := parser.NewParser(&reader.MmapReader{})
-
-		if err := elfParser.Load(args[0]); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n",
+		// Initialises a new parser
+		elfParser, err := elf.Open(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s %s\n",
+				ui.ErrPrefix,
 				err,
 			)
 			return
 		}
-
 		defer elfParser.Close()
 
 		// Getting initiliased ELF Header

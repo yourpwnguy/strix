@@ -256,8 +256,50 @@ const (
 	PF_W uint32 = 2
 	PF_R uint32 = 4
 
-	// Legal values for sh_flags (section flags)
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////// SECTION HEADERS SPECIFIC ///////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
 
+	//	 Legal values for sh_type (section type).
+	SHT_NULL           uint32 = 0          /* Section header table entry unused */
+	SHT_PROGBITS       uint32 = 1          /* Program data */
+	SHT_SYMTAB         uint32 = 2          /* Symbol table */
+	SHT_STRTAB         uint32 = 3          /* String table */
+	SHT_RELA           uint32 = 4          /* Relocation entries with addends */
+	SHT_HASH           uint32 = 5          /* Symbol hash table */
+	SHT_DYNAMIC        uint32 = 6          /* Dynamic linking information */
+	SHT_NOTE           uint32 = 7          /* Notes */
+	SHT_NOBITS         uint32 = 8          /* Program space with no data (bss) */
+	SHT_REL            uint32 = 9          /* Relocation entries, no addends */
+	SHT_SHLIB          uint32 = 10         /* Reserved */
+	SHT_DYNSYM         uint32 = 11         /* Dynamic linker symbol table */
+	SHT_INIT_ARRAY     uint32 = 14         /* Array of constructors */
+	SHT_FINI_ARRAY     uint32 = 15         /* Array of destructors */
+	SHT_PREINIT_ARRAY  uint32 = 16         /* Array of pre-constructors */
+	SHT_GROUP          uint32 = 17         /* Section group */
+	SHT_SYMTAB_SHNDX   uint32 = 18         /* Extended section indices */
+	SHT_RELR           uint32 = 19         /* RELR relative relocations */
+	SHT_NUM            uint32 = 20         /* Number of defined types.  */
+	SHT_LOOS           uint32 = 0x60000000 /* Start OS-specific.  */
+	SHT_GNU_ATTRIBUTES uint32 = 0x6ffffff5 /* Object attributes.  */
+	SHT_GNU_HASH       uint32 = 0x6ffffff6 /* GNU-style hash table.  */
+	SHT_GNU_LIBLIST    uint32 = 0x6ffffff7 /* Prelink library list */
+	SHT_CHECKSUM       uint32 = 0x6ffffff8 /* Checksum for DSO content.  */
+	SHT_LOSUNW         uint32 = 0x6ffffffa /* Sun-specific low bound.  */
+	SHT_SUNW_move      uint32 = 0x6ffffffa
+	SHT_SUNW_COMDAT    uint32 = 0x6ffffffb
+	SHT_SUNW_syminfo   uint32 = 0x6ffffffc
+	SHT_GNU_verdef     uint32 = 0x6ffffffd /* Version definition section.  */
+	SHT_GNU_verneed    uint32 = 0x6ffffffe /* Version needs section.  */
+	SHT_GNU_versym     uint32 = 0x6fffffff /* Version symbol table.  */
+	SHT_HISUNW         uint32 = 0x6fffffff /* Sun-specific high bound.  */
+	SHT_HIOS           uint32 = 0x6fffffff /* End OS-specific type */
+	SHT_LOPROC         uint32 = 0x70000000 /* Start of processor-specific */
+	SHT_HIPROC         uint32 = 0x7fffffff /* End of processor-specific */
+	SHT_LOUSER         uint32 = 0x80000000 /* Start of application-specific */
+	SHT_HIUSER         uint32 = 0x8fffffff /* End of application-specific */
+
+	// Legal values for sh_flags (section flags)
 	SHF_WRITE            uint32 = (1 << 0)   // Writable
 	SHF_ALLOC            uint32 = (1 << 1)   // Occupies memory during execution */
 	SHF_EXECINSTR        uint32 = (1 << 2)   // Executable

@@ -10,7 +10,7 @@ import (
 
 // parseHeader validates and parses the ELF64 header from the provided byte slice.
 // Returns an error if the magic number is invalid or the data is too small.
-func parseELFHeader(data []byte) (*types.Elf64_Ehdr, error) {
+func ParseELFHeader(data []byte) (*types.Elf64_Ehdr, error) {
 	if !unsafe.HasMinimumSize(data) {
 		return nil, fmt.Errorf("%s File too small to be ELF: %d bytes",
 			ui.ErrPrefix,

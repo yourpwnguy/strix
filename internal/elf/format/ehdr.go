@@ -58,7 +58,7 @@ func PrintELFHeader(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr) {
 
 	// ELF OS/ABI
 	sb.WriteString(ui.Cyan.Sprintf("  %-35s", "OS/ABI:"))
-	sb.WriteString(ui.Green.Sprintf(types.GetEiOSABI(e_ident.Ei_osabi)))
+	sb.WriteString(ui.Green.Sprint(types.GetEiOSABI(e_ident.Ei_osabi)))
 	sb.WriteByte('\n')
 
 	// ELF ABI Version

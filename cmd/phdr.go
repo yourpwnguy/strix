@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yourpwnguy/strix/internal/elf"
 	"github.com/yourpwnguy/strix/internal/elf/format"
-	"github.com/yourpwnguy/strix/internal/elf/parser"
-	"github.com/yourpwnguy/strix/internal/reader"
 	"github.com/yourpwnguy/strix/internal/ui"
 )
 
@@ -28,9 +27,9 @@ var phdrCmd = &cobra.Command{
 			return
 		}
 
-		elfParser := parser.NewParser(&reader.MmapReader{})
-
-		if err := elfParser.Load(args[0]); err != nil {
+		// Initialises a new parser
+		elfParser, err := elf.Open(args[0])
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s %s\n",
 				ui.ErrPrefix,
 				err,
@@ -51,7 +50,16 @@ var phdrCmd = &cobra.Command{
 			return
 		}
 
+		shdr, err := elfParser.SectionHeaders()
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			return
+		}
+
 		// Pretty Print the Program Headers
-		format.PrintProgramHeaders(ehdr, phdr, elfParser.Data())
+		// Maybe I shoudn't pass it like this instead bind this into a struct
+		// TODO: Make elf a type and implement a one pass parsing function
+		// TODO: Can we make a formatter interface, could use text or json
+		format.PrintProgramHeaders(ehdr, phdr, shdr, elfParser.Data())
 	},
 }
