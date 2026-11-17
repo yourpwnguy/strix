@@ -15,6 +15,7 @@ var shdrCmd = &cobra.Command{
 	Use:   "shdr [file]",
 	Short: "Display section headers from an ELF file",
 	Long:  "Parse and display the section headers from a given ELF file in a structured and colorized format.",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if strings.TrimSpace(args[0]) == "" {
 			fmt.Fprintf(os.Stderr, "%s %s\n",
