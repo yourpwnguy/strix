@@ -1,6 +1,10 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"os"
+
+	"github.com/spf13/cobra"
+)
 
 // Reepresets the default version
 var Version string = "dev"
@@ -12,7 +16,9 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
 
 func init() {
