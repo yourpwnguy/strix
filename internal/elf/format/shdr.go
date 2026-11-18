@@ -14,7 +14,7 @@ func PrintSectionHeaders(ehdr *types.Elf64_Ehdr, shdr []types.Elf64_Shdr, data [
 	// Taking estimation
 	sb.Grow(2048 + int(ehdr.E_shnum)*200)
 
-	// ELF Program headers count and offset
+	// Section headers count and offset
 	sb.WriteString(ui.Cyan.Sprintf("\n%s", "Section Headers: "))
 	sb.WriteString(ui.Green.Sprintf("%d entries ", ehdr.E_shnum))
 	sb.WriteString("(")
@@ -22,18 +22,13 @@ func PrintSectionHeaders(ehdr *types.Elf64_Ehdr, shdr []types.Elf64_Shdr, data [
 	sb.WriteString(")\n\n")
 
 	sb.WriteString(
-		ui.Magenta.Sprintf("%-7s%-23s%-15s%-9s%-10s%-21s%-21s%s\n%49s%20s\n",
+		ui.Magenta.Sprintf("%-7s%-24s%-16s%-10s%-10s%s\n",
 			"",
 			"Name",
 			"Type",
 			"Flags",
 			"Align",
-			// "Offset",
 			"Address",
-			"Address",
-			"PhysAddr",
-			"FileSiz",
-			"MemSiz",
 		))
 
 	strtab := types.GetStringTable(data, ehdr, shdr)
@@ -41,26 +36,13 @@ func PrintSectionHeaders(ehdr *types.Elf64_Ehdr, shdr []types.Elf64_Shdr, data [
 	// Table rows
 	for i := range shdr {
 		sh := &shdr[i]
-		fmt.Fprintf(&sb, "%-16s%-32s%-24s%-18s%-19s%-30s\n",
-
-			fmt.Sprintf("[%02s]", ui.Red.Sprintf("%02d", i)),
-
-			ui.Cyan.Sprint(types.GetSectionNameFromStringTable(strtab, sh)),
-
-			ui.Yellow.Sprint(types.GetSType(sh.Sh_type)),
-
-			ui.Yellow.Sprintf("%#04x", sh.Sh_flags),
-			ui.Yellow.Sprintf("%#04x", sh.Sh_addralign),
-
-			// ui.Green.Sprintf("%#016x", sh.Sh_offset),
-
+		fmt.Fprintf(&sb, "%s%s%s%s%s%s\n",
+			ui.Red.Sprintf("%-7s", fmt.Sprintf("[%02d]", i)),
+			ui.Cyan.Sprintf("%-24s", types.GetSectionNameFromStringTable(strtab, sh)),
+			ui.Yellow.Sprintf("%-16s", types.GetSType(sh.Sh_type)),
+			ui.Yellow.Sprintf("%-10s", fmt.Sprintf("%#04x", sh.Sh_flags)),
+			ui.Yellow.Sprintf("%-10s", fmt.Sprintf("%#04x", sh.Sh_addralign)),
 			ui.Green.Sprintf("%#016x", sh.Sh_addr),
-
-		// ui.Green.Sprintf("%#016x", sh.P_paddr),
-
-		// ui.Green.Sprintf("%#016x", sh.P_filesz),
-
-		// ui.Green.Sprintf("%#016x", sh.P_memsz))
 		)
 	}
 	fmt.Print(sb.String())
