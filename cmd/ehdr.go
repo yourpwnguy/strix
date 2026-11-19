@@ -51,6 +51,7 @@ var infoCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "%s\n",
 				err,
 			)
+			return
 		}
 
 		// Pretty Print the ELF Header
