@@ -681,13 +681,23 @@ func GetSType(shType uint32) string {
 	}
 }
 
-// Cache the string table data once
+// GetStringTable returns the section name string table referenced by
+// e_shstrndx. It returns nil if the index or the table bounds are invalid.
 func GetStringTable(data []byte, ehdr *Elf64_Ehdr, shdr []Elf64_Shdr) []byte {
+	if int(ehdr.E_shstrndx) >= len(shdr) {
+		return nil
+	}
+
 	shstrtab := shdr[ehdr.E_shstrndx]
-	return data[shstrtab.Sh_offset : shstrtab.Sh_offset+shstrtab.Sh_size]
+	end := shstrtab.Sh_offset + shstrtab.Sh_size
+	if end < shstrtab.Sh_offset || end > uint64(len(data)) {
+		return nil
+	}
+
+	return data[shstrtab.Sh_offset:end]
 }
 
-// Then use it multiple times
+// GetSectionNameFromStringTable resolves a section name through the given string table.
 func GetSectionNameFromStringTable(strtab []byte, section *Elf64_Shdr) string {
 	return Cstring(strtab, section.Sh_name)
 }

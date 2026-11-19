@@ -87,16 +87,11 @@ func PrintProgramHeaders(ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, shdr [
 // printSectionMapping prints which sections belong to each program segment.
 // This shows how the linker packed sections into loadable segments.
 func printSectionMapping(sb *strings.Builder, ehdr *types.Elf64_Ehdr, phdr []types.Elf64_Phdr, shdr []types.Elf64_Shdr, data []byte) {
-	// iF the string table index doesn't fall in section headers, there's no point of continuing
-	if ehdr.E_shstrndx == 0 || int(ehdr.E_shstrndx) >= len(shdr) {
+	// Without a usable section name table there is nothing to map.
+	strs := types.GetStringTable(data, ehdr, shdr)
+	if len(strs) == 0 {
 		return
 	}
-
-	// Getting the section header containing the string table
-	strtab := shdr[ehdr.E_shstrndx]
-
-	// Getting the strings table (start + start + size)
-	strs := data[strtab.Sh_offset : strtab.Sh_offset+strtab.Sh_size]
 
 	sb.WriteString(ui.Cyan.Sprint("\nSection to Segment Mapping:\n"))
 	sb.WriteString(ui.Magenta.Sprint(" Segment", " Sections...\n"))
