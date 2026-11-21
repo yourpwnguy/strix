@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"errors"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yourpwnguy/strix/internal/elf"
 	"github.com/yourpwnguy/strix/internal/elf/format"
-	"github.com/yourpwnguy/strix/internal/ui"
 )
 
 // infoCmd displays ELF headers with colored output.
@@ -17,44 +15,31 @@ var infoCmd = &cobra.Command{
 	Short:   "Display complete ELF information from an ELF file",
 	Example: "strix ehdr /bin/ls",
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if strings.TrimSpace(args[0]) == "" {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				ui.Red.Sprint("Provide an argument !"),
-			)
-			return
+			return errors.New("provide an argument")
 		}
 
 		// Initialises a new parser
 		elfParser, err := elf.Open(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				err,
-			)
-			return
+			return err
 		}
 		defer elfParser.Close()
 
 		// Getting initiliased ELF Header
 		hdr, err := elfParser.ELFHeader()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n",
-				err,
-			)
-			return
+			return err
 		}
 
 		phdr, err := elfParser.ProgramHeaders()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n",
-				err,
-			)
-			return
+			return err
 		}
 
 		// Pretty Print the ELF Header
 		format.PrintELFHeader(hdr, phdr)
+		return nil
 	},
 }

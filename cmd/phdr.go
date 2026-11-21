@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"errors"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yourpwnguy/strix/internal/elf"
 	"github.com/yourpwnguy/strix/internal/elf/format"
-	"github.com/yourpwnguy/strix/internal/ui"
 )
 
 // phdrCmd displays ELF program headers with colored output.
@@ -18,42 +16,31 @@ var phdrCmd = &cobra.Command{
 	Short:   "Display program headers from an ELF file",
 	Example: "strix phdr /bin/ls",
 	Args:    cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if strings.TrimSpace(args[0]) == "" {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				ui.Red.Sprint("Provide an argument !"),
-			)
-			return
+			return errors.New("provide an argument")
 		}
 
 		// Initialises a new parser
 		elfParser, err := elf.Open(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				err,
-			)
-			return
+			return err
 		}
 		defer elfParser.Close()
 
 		ehdr, err := elfParser.ELFHeader()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			return
+			return err
 		}
 
 		phdr, err := elfParser.ProgramHeaders()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			return
+			return err
 		}
 
 		shdr, err := elfParser.SectionHeaders()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			return
+			return err
 		}
 
 		// Pretty Print the Program Headers
@@ -61,5 +48,6 @@ var phdrCmd = &cobra.Command{
 		// TODO: Make elf a type and implement a one pass parsing function
 		// TODO: Can we make a formatter interface, could use text or json
 		format.PrintProgramHeaders(ehdr, phdr, shdr, elfParser.Data())
+		return nil
 	},
 }

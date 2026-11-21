@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"errors"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yourpwnguy/strix/internal/elf"
 	"github.com/yourpwnguy/strix/internal/elf/format"
-	"github.com/yourpwnguy/strix/internal/ui"
 )
 
 var shdrCmd = &cobra.Command{
@@ -16,41 +14,32 @@ var shdrCmd = &cobra.Command{
 	Short: "Display section headers from an ELF file",
 	Long:  "Parse and display the section headers from a given ELF file in a structured and colorized format.",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if strings.TrimSpace(args[0]) == "" {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				ui.Red.Sprint("Provide an argument !"),
-			)
-			return
+			return errors.New("provide an argument")
 		}
 
 		// Initialises a new parser
 		elfParser, err := elf.Open(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s %s\n",
-				ui.ErrPrefix,
-				err,
-			)
-			return
+			return err
 		}
 		defer elfParser.Close()
 
 		// Getting initiliased ELF Header
 		ehdr, err := elfParser.ELFHeader()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			return
+			return err
 		}
 
 		// Getting initiliased ELF Header
 		shdr, err := elfParser.SectionHeaders()
 		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			return
+			return err
 		}
 
 		// Pretty Print the ELF Header
 		format.PrintSectionHeaders(ehdr, shdr, elfParser.Data())
+		return nil
 	},
 }
